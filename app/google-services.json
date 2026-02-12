@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "597907498208",
+    "project_id": "timevillage-42",
+    "storage_bucket": "timevillage-42.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:597907498208:android:84957bedf944cf29ac1c85",
+        "android_client_info": {
+          "package_name": "com.example.timevillage"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "597907498208-ue0mtjojr7kf9ucns1pou2ra9a4iro5f.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.timevillage",
+            "certificate_hash": "6aa44ec494a9ba9fc45ee2a29ca9cd73430e7e51"
+          }
+        },
+        {
+          "client_id": "597907498208-5tjpuqkklsjq0hdt189q590b7egdgptm.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAyY1p55wzhONvQFsmoba_eyfH2ykHoy5Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "597907498208-5tjpuqkklsjq0hdt189q590b7egdgptm.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
