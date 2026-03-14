@@ -44,17 +44,18 @@ class VillageRepository(private val villageDao: VillageDao) {
         villageDao.insertUserInfo(updated)
     }
 
-    suspend fun syncAllData(accumulated: Long, global: Long, cloudBuildings: List<Map<String, Any>>) {
-        // Преобразуем List<Map> из Firebase в List<BuildingEntity>
+    suspend fun syncAllData(accTime: Long, globTime: Long, cloudBuildings: List<Map<String, Any>>) {
+
         val entities = cloudBuildings.map { map ->
             BuildingEntity(
-                type = map["type"] as? String ?: "HOUSE",
-                level = (map["level"] as? Long)?.toInt() ?: 1,
-                x = (map["x"] as? Long)?.toInt() ?: 0,
-                y = (map["y"] as? Long)?.toInt() ?: 0
+                type = map["type"] as String,
+                level = (map["level"] as Long).toInt(),
+                x = (map["x"] as Long).toInt(),
+                y = (map["y"] as Long).toInt()
             )
         }
-        villageDao.updateAllData(accumulated, global, entities)
+
+        villageDao.updateAllData(accTime, globTime, entities)
     }
 
     suspend fun spendTime(amount: Long) {

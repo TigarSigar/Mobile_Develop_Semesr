@@ -11,6 +11,7 @@ import coil.ImageLoader
 import coil.request.ImageRequest
 import com.example.timevillage.R
 import com.example.timevillage.data.local.BuildingEntity
+import com.example.timevillage.data.local.UserInfoEntity
 import com.example.timevillage.data.repository.VillageRepository
 import com.google.firebase.Firebase
 import com.google.firebase.remoteconfig.remoteConfig
@@ -21,6 +22,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
+
 
 // --- МОДЕЛИ ДАННЫХ (Под твой JSON) ---
 data class GameConfig(
@@ -77,6 +79,28 @@ class VillageViewModel(val repository: VillageRepository) : ViewModel() {
 
     private val remoteConfig = Firebase.remoteConfig
     private val gson = Gson()
+
+    private val db = FirebaseFirestore.getInstance()
+    private val auth = FirebaseAuth.getInstance()
+
+
+    fun loadGameProgress(onSuccess: (Map<String, Any>) -> Unit) {
+        val userId = auth.currentUser?.uid ?: return
+
+        db.collection("users").document(userId).get()
+            .addOnSuccessListener { document ->
+                if (document != null && document.exists()) {
+                    val data = document.data
+                    if (data != null) {
+                        onSuccess(data)
+                        Log.d("Firestore", "Данные игрока загружены")
+                    }
+                } else {
+                    Log.d("Firestore", "Новый игрок, сохранений в облаке нет")
+                }
+            }
+    }
+
 
     val uiState: StateFlow<VillageUiState> = combine(
         repository.allBuildings,
@@ -144,8 +168,8 @@ class VillageViewModel(val repository: VillageRepository) : ViewModel() {
                 mapOf(
                     "type" to building.type,
                     "level" to building.level,
-                    "x" to building.x, // Используем правильные поля x
-                    "y" to building.y  // и y
+                    "x" to building.x,
+                    "y" to building.y
                 )
             },
             "lastSync" to com.google.firebase.Timestamp.now()
@@ -166,11 +190,15 @@ class VillageViewModel(val repository: VillageRepository) : ViewModel() {
                     val cloudAcc = document.getLong("accumulatedTime") ?: 0L
                     val cloudGlobal = document.getLong("globalTime") ?: 0L
                     val cloudBuildings = document.get("buildings") as? List<Map<String, Any>> ?: emptyList()
+                    val cloudNickname = document.getString("nickname") ?: "Игрок"
 
                     viewModelScope.launch {
+                        // Используем твой метод репозитория для полной перезаписи локальной БД
                         repository.syncAllData(cloudAcc, cloudGlobal, cloudBuildings)
+                        repository.updateNickname(cloudNickname)
                     }
                 } else {
+                    // Если в облаке пусто (новый юзер) — создаем там первую запись
                     saveToCloud()
                 }
             }
@@ -281,6 +309,7 @@ class VillageViewModel(val repository: VillageRepository) : ViewModel() {
             if (uiState.value.accumulatedTime >= cost) {
                 repository.spendTime(cost)
                 repository.insertBuilding(BuildingEntity(type = type, x = x, y = y, level = 1))
+                saveToCloud()
             }
         }
     }
@@ -293,6 +322,7 @@ class VillageViewModel(val repository: VillageRepository) : ViewModel() {
             if (uiState.value.accumulatedTime >= cost) {
                 repository.spendTime(cost)
                 repository.insertBuilding(building.copy(level = nextLvl))
+                saveToCloud()
             }
         }
     }
