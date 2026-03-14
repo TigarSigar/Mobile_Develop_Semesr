@@ -12,9 +12,9 @@ interface VillageDao {
     suspend fun insertBuilding(building: BuildingEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertBuildings(buildings: List<BuildingEntity>) // Добавлено для списка
+    suspend fun insertBuildings(buildings: List<BuildingEntity>)
 
-    @Query("DELETE FROM buildings") // Добавлено для очистки
+    @Query("DELETE FROM buildings")
     suspend fun deleteAllBuildings()
 
     @Query("SELECT * FROM user_info WHERE id = 0")
@@ -26,7 +26,6 @@ interface VillageDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertUserInfo(userInfo: UserInfoEntity)
 
-    // Запрос для обновления только времени
     @Query("UPDATE user_info SET accumulatedTime = :accumulated, globalTime = :global WHERE id = 0")
     suspend fun updateTimes(accumulated: Long, global: Long)
 
@@ -37,7 +36,6 @@ interface VillageDao {
         updateTimes(accumulated, global)
     }
 
-    // Остальные методы для категорий, если они тебе нужны
     @Query("SELECT * FROM categories ORDER BY position ASC")
     fun getAllCategories(): Flow<List<CategoryEntity>>
 
