@@ -9,9 +9,33 @@ import kotlinx.coroutines.flow.*
 
 class TimerViewModel(private val repository: VillageRepository) : ViewModel() {
 
+    private val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+    private val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
     private val _uiState = MutableStateFlow(TimerUiState())
     val uiState = _uiState.asStateFlow()
 
+    private fun syncTimerToCloud() {
+        val userId = auth.currentUser?.uid ?: return
+
+        viewModelScope.launch {
+            val stats = repository.userInfo.first() ?: return@launch
+            val buildings = repository.allBuildings.first()
+
+            val userData = hashMapOf(
+                "accumulatedTime" to stats.accumulatedTime,
+                "globalTime" to stats.globalTime,
+                "nickname" to stats.nickname,
+                "buildings" to buildings.map {
+                    mapOf("type" to it.type, "level" to it.level, "x" to it.x, "y" to it.y)
+                },
+                "lastSync" to com.google.firebase.Timestamp.now()
+            )
+
+            db.collection("users").document(userId)
+                .set(userData)
+                .addOnSuccessListener { android.util.Log.d("TIMER_SYNC", "Time synced to cloud!") }
+        }
+    }
     private var timerJob: Job? = null
 
     init {
@@ -66,6 +90,8 @@ class TimerViewModel(private val repository: VillageRepository) : ViewModel() {
         viewModelScope.launch {
             if (seconds > 0) {
                 repository.updateTime(seconds)
+                delay(200)
+                syncTimerToCloud()
             }
             _uiState.update {
                 it.copy(sessionSeconds = 0, isRunning = false, activeCategoryId = null)
@@ -91,7 +117,9 @@ class TimerViewModel(private val repository: VillageRepository) : ViewModel() {
 
         viewModelScope.launch {
             if (seconds > 0) {
-                repository.updateTime(seconds) // СОХРАНЕНИЕ ТУТ
+                repository.updateTime(seconds)
+                delay(200)
+                syncTimerToCloud()
             }
             _uiState.update {
                 it.copy(sessionSeconds = 0, isRunning = false, activeCategoryId = null)

@@ -45,7 +45,6 @@ class VillageRepository(private val villageDao: VillageDao) {
     }
 
     suspend fun syncAllData(accTime: Long, globTime: Long, cloudBuildings: List<Map<String, Any>>) {
-
         val entities = cloudBuildings.map { map ->
             BuildingEntity(
                 type = map["type"] as String,
@@ -55,7 +54,15 @@ class VillageRepository(private val villageDao: VillageDao) {
             )
         }
 
-        villageDao.updateAllData(accTime, globTime, entities)
+        val currentUser = villageDao.getUserInfoSync()
+        if (currentUser == null) {
+            villageDao.insertUserInfo(UserInfoEntity(id = 0, accumulatedTime = accTime, globalTime = globTime))
+        } else {
+            villageDao.updateTimes(accTime, globTime)
+        }
+
+        villageDao.deleteAllBuildings()
+        villageDao.insertBuildings(entities)
     }
 
     suspend fun spendTime(amount: Long) {
