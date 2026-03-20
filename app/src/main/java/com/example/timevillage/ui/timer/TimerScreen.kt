@@ -1,17 +1,50 @@
 package com.example.timevillage.ui.timer
 
-import androidx.compose.animation.*
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -19,36 +52,67 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import com.example.timevillage.data.local.CategoryEntity
 import com.example.timevillage.util.formatToTime
-import kotlin.compareTo
 
 @Composable
 fun TimerScreen(viewModel: TimerViewModel) {
     val state by viewModel.uiState.collectAsState()
+    val conflictTimer = viewModel.conflictTimerState.value
 
-    // Режимы интерфейса
     var isEditMode by remember { mutableStateOf(false) }
     var showAddDialog by remember { mutableStateOf(false) }
     var newCatName by remember { mutableStateOf("") }
 
-    // Состояния для редактирования
     var colorDialogTarget by remember { mutableStateOf<CategoryEntity?>(null) }
     var nameDialogTarget by remember { mutableStateOf<CategoryEntity?>(null) }
     var editNameValue by remember { mutableStateOf("") }
 
     val colorOptions = listOf(
-        Color(0xFF4CAF50), // Зеленый
-        Color(0xFF03A9F4), // Голубой
-        Color(0xFF9C27B0), // Фиолетовый
-        Color(0xFFF44336), // Красный
-        Color(0xFFFFEB3B), // Желтый
-        Color(0xFFFF9800), // Оранжевый
-        Color(0xFFE91E63)  // Тот самый сочный Розовый
+        Color(0xFF4CAF50),
+        Color(0xFF03A9F4),
+        Color(0xFF9C27B0),
+        Color(0xFFF44336),
+        Color(0xFFFFEB3B),
+        Color(0xFFFF9800),
+        Color(0xFFE91E63)
     )
 
+    conflictTimer?.let { timer ->
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissConflict() },
+            containerColor = Color(0xFF161B16),
+            title = {
+                Text(
+                    text = "Таймер уже запущен",
+                    color = Color.White
+                )
+            },
+            text = {
+                Text(
+                    text = "Активная сессия сейчас запущена в ${timer.sourceApp}: ${timer.taskName}.",
+                    color = Color(0xFFD8E3D8)
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.resolveTimerConflict() },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+                ) {
+                    Text("Завершить активный таймер", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissConflict() }) {
+                    Text("Отмена", color = Color(0xFFAAC6AA))
+                }
+            }
+        )
+    }
+
     Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
-        // Верхняя панель
         Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -70,7 +134,6 @@ fun TimerScreen(viewModel: TimerViewModel) {
             }
         }
 
-        // Таймер
         Text(
             text = state.sessionSeconds.formatToTime(),
             style = MaterialTheme.typography.displayLarge,
@@ -78,17 +141,19 @@ fun TimerScreen(viewModel: TimerViewModel) {
             modifier = Modifier.padding(vertical = 20.dp)
         )
 
-        // Список категорий
         LazyColumn(
-            modifier = Modifier.fillMaxWidth().weight(1f),
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
             contentPadding = PaddingValues(bottom = 80.dp)
         ) {
             itemsIndexed(state.categories, key = { _, cat -> cat.id }) { index, category ->
+                val isActive = state.activeTargetId == viewModel.localTargetId(category.id) && state.isRunning
                 CategoryRow(
                     category = category,
                     isEditMode = isEditMode,
-                    isActive = state.activeCategoryId == category.id && state.isRunning,
-                    onPlay = { viewModel.startTimer(category.id) },
+                    isActive = isActive,
+                    onPlay = { viewModel.startLocalTimer(category) },
                     onPause = { viewModel.pauseTimer() },
                     onDelete = { viewModel.deleteCategory(category) },
                     onColorClick = { colorDialogTarget = category },
@@ -100,13 +165,36 @@ fun TimerScreen(viewModel: TimerViewModel) {
                     onMoveDown = { if (index < (state.categories.size - 1)) viewModel.moveCategory(category, up = false) }
                 )
             }
+
+            if (state.importedTasks.isNotEmpty()) {
+                item {
+                    Text(
+                        text = "Импорт из TDT",
+                        color = Color(0xFF9FC39F),
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+                    )
+                }
+            }
+
+            items(state.importedTasks, key = { it.id }) { task ->
+                val isActive = state.activeTargetId == task.id && state.isRunning
+                ImportedTaskRow(
+                    task = task,
+                    isActive = isActive,
+                    onPlay = { viewModel.startImportedTaskTimer(task) },
+                    onPause = { viewModel.pauseTimer() }
+                )
+            }
         }
 
-        // Кнопка сохранения
         if (state.sessionSeconds > 0 && !state.isRunning) {
             Button(
                 onClick = { viewModel.finishSession() },
-                modifier = Modifier.padding(16.dp).fillMaxWidth().height(56.dp),
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth()
+                    .height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
             ) {
                 Text("Завершить и сохранить", color = Color.White)
@@ -114,9 +202,6 @@ fun TimerScreen(viewModel: TimerViewModel) {
         }
     }
 
-    // --- Диалоги ---
-
-    // 1. Диалог переименования
     nameDialogTarget?.let { category ->
         AlertDialog(
             onDismissRequest = { nameDialogTarget = null },
@@ -143,30 +228,25 @@ fun TimerScreen(viewModel: TimerViewModel) {
         )
     }
 
-    // 2. Диалог выбора цвета
     colorDialogTarget?.let { category ->
         AlertDialog(
             onDismissRequest = { colorDialogTarget = null },
             title = { Text("Выбор цвета") },
             text = {
-                // Контейнер с принудительным заполнением всей доступной ширины
                 Box(modifier = Modifier.fillMaxWidth()) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 8.dp),
-                        // Arrangement.SpaceBetween распределит кружки максимально широко
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         colorOptions.forEach { color ->
                             val hexString = String.format("#%06X", (0xFFFFFF and color.toArgb()))
-
                             Box(
                                 modifier = Modifier
-                                    .size(36.dp) // Чуть уменьшили размер (с 40 до 36), чтобы точно влезло
+                                    .size(36.dp)
                                     .background(color, shape = CircleShape)
-                                    // Обводку убрали совсем
                                     .clickable {
                                         viewModel.updateCategoryColor(category, hexString)
                                         colorDialogTarget = null
@@ -185,7 +265,6 @@ fun TimerScreen(viewModel: TimerViewModel) {
         )
     }
 
-    // 3. Диалог добавления новой категории
     if (showAddDialog) {
         AlertDialog(
             onDismissRequest = { showAddDialog = false },
@@ -230,7 +309,7 @@ fun CategoryRow(
 ) {
     val color = try {
         Color(android.graphics.Color.parseColor(category.colorHex))
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         Color.Gray
     }
 
@@ -240,10 +319,11 @@ fun CategoryRow(
         color = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Индикатор цвета
             Box(
                 modifier = Modifier
                     .size(24.dp)
@@ -253,7 +333,6 @@ fun CategoryRow(
 
             Spacer(Modifier.width(16.dp))
 
-            // Имя категории
             Text(
                 text = category.name,
                 style = MaterialTheme.typography.bodyLarge,
@@ -263,7 +342,6 @@ fun CategoryRow(
                 color = if (isEditMode) Color.Cyan else Color.White
             )
 
-            // Управление
             AnimatedContent(targetState = isEditMode, label = "ControlsAnim") { edit ->
                 if (edit) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -291,5 +369,63 @@ fun CategoryRow(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ImportedTaskRow(
+    task: ImportedTvTask,
+    isActive: Boolean,
+    onPlay: () -> Unit,
+    onPause: () -> Unit
+) {
+    val color = importedTagColor(task.tag)
+
+    Surface(
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(22.dp)
+                    .background(color, RoundedCornerShape(4.dp))
+            )
+
+            Spacer(Modifier.width(16.dp))
+
+            Text(
+                text = task.title,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f),
+                color = Color.White
+            )
+
+            IconButton(
+                onClick = { if (isActive) onPause() else onPlay() },
+                modifier = Modifier.background(if (isActive) Color.Gray else color, CircleShape)
+            ) {
+                Icon(
+                    imageVector = if (isActive) Icons.Default.Pause else Icons.Default.PlayArrow,
+                    contentDescription = "Start",
+                    tint = Color.White
+                )
+            }
+        }
+    }
+}
+
+private fun importedTagColor(tag: String): Color {
+    return when (tag.lowercase()) {
+        "intel", "интеллект" -> Color(0xFF03A9F4)
+        "strength", "сила" -> Color(0xFFF44336)
+        "craft", "ремесло" -> Color(0xFFFF9800)
+        else -> Color(0xFF4CAF50)
     }
 }
