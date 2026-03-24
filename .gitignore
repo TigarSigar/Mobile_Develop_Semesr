@@ -1,15 +1,28 @@
-*.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
+# Глобальные файлы Gradle и Android Studio
+.gradle/
+build/
+captures/
+.externalNativeBuild/
+.cxx/
 local.properties
+
+# Настройки IDE (самое важное, чтобы не лез мусор из .idea)
+.idea/
+*.iml
+.idea/caches/
+.idea/libraries/
+.idea/modules.xml
+.idea/workspace.xml
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
+
+# Специфично для модулей (TDT и TV)
+**/build/
+**/intermediate/
+**/outputs/
+**/tmp/
+
+# Локальные конфиги
+*.keystore
+!debug.keystore
+google-services.json
